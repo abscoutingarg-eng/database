@@ -1,1 +1,396 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+:root{
+  --negro:#050505;
+  --grafito:#111418;
+  --gris:#1d232b;
+  --gris-claro:#d9d9d9;
+  --blanco:#ffffff;
+  --rojo:#d92525;
+  --rojo-oscuro:#a91515;
+}
 
+body{
+  font-family:Arial, Helvetica, sans-serif;
+  background:linear-gradient(135deg,#050505,#151515,#1d232b);
+  color:var(--blanco);
+  margin:0;
+  padding:0;
+}
+
+.header{
+  display:flex;
+  align-items:center;
+  gap:18px;
+  padding:24px;
+  background:linear-gradient(90deg,#050505,#111418);
+  border-bottom:4px solid var(--rojo);
+}
+
+.logo{
+  width:180px;
+  height:180px;
+  object-fit:contain;
+  background:white;
+  border-radius:24px;
+  padding:12px;
+  box-shadow:0 0 25px rgba(217,37,37,.35);
+}
+
+.header-title h1{
+  margin:0;
+  font-size:48px;
+  font-weight:800;
+  letter-spacing:.5px;
+}
+
+.header-title p{
+  margin-top:10px;
+  font-size:20px;
+  color:#d9d9d9;
+}
+
+.container{
+  padding:20px;
+}
+
+.panel{
+  background:rgba(17,20,24,.95);
+  border:1px solid #303741;
+  border-radius:18px;
+  padding:20px;
+  margin-bottom:18px;
+  box-shadow:0 12px 30px rgba(0,0,0,.35);
+}
+
+h2{
+  margin-top:0;
+  border-left:5px solid var(--rojo);
+  padding-left:10px;
+}
+
+input,select,textarea{
+  width:100%;
+  padding:12px;
+  border-radius:12px;
+  border:1px solid #3a414c;
+  background:#090b0e;
+  color:white;
+}
+
+button{
+  background:linear-gradient(135deg,var(--rojo),var(--rojo-oscuro));
+  color:white;
+  border:0;
+  border-radius:12px;
+  padding:12px 18px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+button:hover{
+  filter:brightness(1.15);
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:14px;
+}
+
+.cards{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
+  gap:14px;
+}
+
+.card{
+  background:linear-gradient(180deg,#1d232b,#111418);
+  border:1px solid #343b46;
+  border-radius:18px;
+  padding:16px;
+  cursor:pointer;
+  transition:.2s;
+}
+
+.card:hover{
+  transform:translateY(-3px);
+  border-color:var(--rojo);
+}
+
+.card img{
+  width:78px;
+  height:78px;
+  border-radius:50%;
+  object-fit:cover;
+  border:3px solid var(--rojo);
+  background:white;
+}
+
+.meta{
+  color:#c7c7c7;
+  font-size:14px;
+  line-height:1.5;
+}
+
+.tag{
+  display:inline-block;
+  margin-top:8px;
+  background:var(--rojo);
+  color:white;
+  padding:5px 10px;
+  border-radius:999px;
+  font-size:12px;
+}
+
+a{
+  color:#ff5a5a;
+  font-weight:bold;
+  margin-right:10px;
+}
+
+textarea{
+  min-height:120px;
+}
+
+@media(max-width:900px){
+  .grid{
+    grid-template-columns:1fr;
+  }
+
+.header{
+  display:flex;
+  align-items:center;
+  gap:30px;
+  padding:30px;
+  background:linear-gradient(90deg,#050505,#111418);
+  border-bottom:4px solid #d92525;
+}
+}
+  </style>
+</head>
+<div class="header">
+  <img class="logo" src="https://drive.google.com/thumbnail?id=1Kcqr_xuia_hULNzU3T_CC5eJyaSTv2Hd">
+  <div class="header-title">
+    <h1>Athlon Base Scouting</h1>
+    <p>Exportación de talento deportivo · Evaluación · Seguimiento · Proyección</p>
+  </div>
+</div>
+
+<div class="container">
+
+<body>
+  <p>Panel de jugadores</p>
+
+  <button onclick="loadPlayers()">Actualizar datos</button>
+
+  <div class="panel">
+    <h2>Filtros</h2>
+    <div class="grid">
+      <input id="searchInput" placeholder="Buscar">
+      <input id="countryFilter" placeholder="País">
+      <input id="positionFilter" placeholder="Posición">
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Jugadores: <span id="countBadge">0</span></h2>
+    <div id="playersList">Cargando...</div>
+  </div>
+
+  <div class="panel">
+    <h2>Ficha del jugador</h2>
+    <div id="playerDetail">Seleccioná un jugador.</div>
+  </div>
+
+<script>
+var players = [];
+var selectedPlayer = null;
+
+window.onload = function(){
+  loadPlayers();
+
+  document.getElementById('searchInput').oninput = renderPlayers;
+  document.getElementById('countryFilter').oninput = renderPlayers;
+  document.getElementById('positionFilter').oninput = renderPlayers;
+};
+
+function loadPlayers(){
+  document.getElementById('playersList').innerHTML = 'Cargando jugadores...';
+
+  google.script.run
+    .withSuccessHandler(function(data){
+      players = data || [];
+      document.getElementById('countBadge').innerHTML = players.length;
+      renderPlayers();
+    })
+    .withFailureHandler(function(error){
+      document.getElementById('playersList').innerHTML = 'ERROR: ' + error.message;
+    })
+    .getPlayers();
+}
+
+function normalizar(txt){
+  return String(txt || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'');
+}
+
+function driveImage(url){
+  var texto = String(url || '');
+  var match = texto.match(/id=([^&]+)/);
+  if(match){
+    return 'https://drive.google.com/thumbnail?id=' + match[1];
+  }
+  return texto;
+}
+
+function renderPlayers(){
+  var buscar = normalizar(document.getElementById('searchInput').value);
+  var pais = normalizar(document.getElementById('countryFilter').value);
+  var posicion = normalizar(document.getElementById('positionFilter').value);
+
+  var filtrados = players.filter(function(p){
+    var blob = normalizar(JSON.stringify(p));
+
+    return (!buscar || blob.indexOf(buscar) !== -1)
+      && (!pais || normalizar(p.pais).indexOf(pais) !== -1)
+      && (!posicion || normalizar(p.posicion).indexOf(posicion) !== -1);
+  });
+
+  document.getElementById('countBadge').innerHTML = filtrados.length;
+
+  if(filtrados.length === 0){
+    document.getElementById('playersList').innerHTML = 'No se encontraron jugadores.';
+    return;
+  }
+
+  var html = '<div class="cards">';
+
+  filtrados.forEach(function(p){
+    html += '<div class="card" onclick="showPlayer(' + p.rowNumber + ')">';
+
+    if(p.foto){
+      html += '<img src="' + driveImage(p.foto) + '">';
+    }
+
+    html += '<h3>' + (p.nombre || '') + ' ' + (p.apellido || '') + '</h3>';
+    html += '<div class="meta">';
+    html += (p.edad || '-') + ' años · ' + (p.pais || '-') + '<br>';
+    html += (p.posicion || '-') + ' · ' + (p.perfil || '-') + '<br>';
+    html += 'Club: ' + (p.club || '-');
+    html += '</div>';
+    html += '</div>';
+  });
+
+  html += '</div>';
+
+  document.getElementById('playersList').innerHTML = html;
+}
+
+function showPlayer(rowNumber){
+  selectedPlayer = null;
+
+  players.forEach(function(p){
+    if(Number(p.rowNumber) === Number(rowNumber)){
+      selectedPlayer = p;
+    }
+  });
+
+  if(!selectedPlayer){
+    alert('No se encontró el jugador.');
+    return;
+  }
+
+  var p = selectedPlayer;
+  var videos = [p.video1, p.video2, p.video3, p.video4, p.video5];
+
+  var videoHtml = '';
+
+  videos.forEach(function(v, i){
+    if(v){
+      videoHtml += '<a href="' + v + '" target="_blank">Video ' + (i + 1) + '</a>';
+    }
+  });
+
+  if(videoHtml === ''){
+    videoHtml = 'Sin videos cargados';
+  }
+
+  var html = '';
+
+  html += '<h2>' + (p.nombre || '') + ' ' + (p.apellido || '') + '</h2>';
+  html += '<p class="meta">';
+  html += 'Email: ' + (p.email || '-') + '<br>';
+  html += 'Contacto: ' + (p.contacto || '-') + '<br>';
+  html += 'Edad: ' + (p.edad || '-') + '<br>';
+  html += 'País: ' + (p.pais || '-') + '<br>';
+  html += 'Provincia: ' + (p.provincia || '-') + '<br>';
+  html += 'Localidad: ' + (p.localidad || '-') + '<br>';
+  html += 'Altura: ' + (p.altura || '-') + '<br>';
+  html += 'Peso: ' + (p.peso || '-') + '<br>';
+  html += 'Posición: ' + (p.posicion || '-') + '<br>';
+  html += 'Perfil: ' + (p.perfil || '-') + '<br>';
+  html += 'Club: ' + (p.club || '-') + '<br>';
+  html += 'Contrato: ' + (p.contrato || '-');
+  html += '</p>';
+
+  html += '<h3>Videos</h3>';
+  html += videoHtml;
+
+  html += '<h3>Evaluación</h3>';
+  html += '<div class="grid">';
+  html += '<input id="tecnica" type="number" min="1" max="10" placeholder="Técnica">';
+  html += '<input id="tactica" type="number" min="1" max="10" placeholder="Táctica">';
+  html += '<input id="fisico" type="number" min="1" max="10" placeholder="Físico">';
+  html += '<input id="mental" type="number" min="1" max="10" placeholder="Mental">';
+  html += '<input id="proyeccion" type="number" min="1" max="10" placeholder="Proyección">';
+  html += '<select id="condicion">';
+  html += '<option value="">Condición</option>';
+  html += '<option value="Contratar">Contratar</option>';
+  html += '<option value="Seguir Observando">Seguir Observando</option>';
+  html += '<option value="Descartado">Descartado</option>';
+  html += '</select>';
+  html += '</div>';
+
+  html += '<br><textarea id="observaciones" placeholder="Observaciones"></textarea><br><br>';
+  html += '<button onclick="saveEvaluation()">Guardar evaluación</button>';
+
+  document.getElementById('playerDetail').innerHTML = html;
+}
+
+function saveEvaluation(){
+  if(!selectedPlayer){
+    alert('Seleccioná un jugador.');
+    return;
+  }
+
+  var payload = {
+    rowNumber: selectedPlayer.rowNumber,
+    tecnica: document.getElementById('tecnica').value,
+    tactica: document.getElementById('tactica').value,
+    fisico: document.getElementById('fisico').value,
+    mental: document.getElementById('mental').value,
+    proyeccion: document.getElementById('proyeccion').value,
+    condicion: document.getElementById('condicion').value,
+    observaciones: document.getElementById('observaciones').value
+  };
+
+  google.script.run
+    .withSuccessHandler(function(res){
+      alert('Evaluación guardada.');
+      loadPlayers();
+    })
+    .withFailureHandler(function(error){
+      alert('Error: ' + error.message);
+    })
+    .saveEvaluation(payload);
+}
+</script>
+
+</body>
+</html>
